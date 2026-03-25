@@ -65,7 +65,7 @@ async def query_knowledge_base(request: QueryRequest, db: Session = Depends(get_
                 conversation_history.append({"role": "assistant", "content": conv.agent_answer})
 
         # 2. 执行 RAG 查询
-        result = rag_service.query(query, conversation_history)
+        result = rag_service.query(query, conversation_history, session_id=session_id)
 
         answer = result["answer"]
         follow_ups = result["follow_up_questions"]

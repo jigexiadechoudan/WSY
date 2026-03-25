@@ -264,13 +264,14 @@ class RAGService:
 
         return f"{node_name} → {relation_type} → {related_name}"
 
-    def query(self, question: str, conversation_history: List[Dict] = None) -> Dict[str, Any]:
+    def query(self, question: str, conversation_history: List[Dict] = None, session_id: str = "default") -> Dict[str, Any]:
         """
         完整的 RAG 查询流程
 
         Args:
             question: 用户问题
             conversation_history: 对话历史
+            session_id: 会话ID
 
         Returns:
             包含回答、追问选项等信息的字典
@@ -287,7 +288,8 @@ class RAGService:
         answer, follow_ups = self.llm.answer_with_context(
             question=question,
             kg_context=kg_context,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            session_id=session_id
         )
 
         # 4. 提取相关实体（用于前端展示）
