@@ -22,7 +22,7 @@ def seed_data():
     CREATE (shadow:Heritage {name: "皮影戏", type: "Craft", description: "皮影戏是中国古老的民间传统艺术，用灯光照射兽皮或纸板制作的人物剪影来表演故事。2006 年列入国家级非物质文化遗产，2011 年入选联合国教科文组织人类非物质文化遗产代表作名录。"})
 
     // Create Techniques for 苏绣
-    CREATE (luan:Technique {name: "乱针绣", description: "打破传统刺绣"密接其针、排比其线"的规律，运用长短交叉的线条，分层加色。"})
+    CREATE (luan:Technique {name: "乱针绣", description: '打破传统刺绣“密接其针、排比其线”的规律，运用长短交叉的线条，分层加色。'})
     CREATE (ping:Technique {name: "平针绣", description: "苏绣中最基础的针法，线条排列整齐，平顺光滑。"})
 
     // Create Techniques for 紫砂

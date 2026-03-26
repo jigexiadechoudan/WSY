@@ -137,7 +137,7 @@ const Home = () => {
                   <br /><br />
                   将您的草图瞬间转化为非遗风格的大师之作。加载特定 LoRA 模型，探索苏绣质感或青花纹样的无限可能。
                 </p>
-                <a href="/creative-artisan" className="inline-flex items-center text-vermilion font-bold text-sm tracking-widest hover:underline">
+                <a href="/creative-workshop" className="inline-flex items-center text-vermilion font-bold text-sm tracking-widest hover:underline">
                   开始创作 <span className="ml-2">→</span>
                 </a>
               </div>

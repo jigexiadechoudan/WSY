@@ -3,7 +3,7 @@ import React from 'react';
 const Navbar = () => {
   return (
     <nav className="fixed w-full z-50 px-8 py-6 flex justify-between items-center backdrop-blur-sm bg-rice-paper/80 border-b border-ink-black/5">
-      <a href="/" className="flex items-center gap-4 group">
+      <a href="/home" className="flex items-center gap-4 group">
         <div className="w-10 h-10 border-2 border-ink-black rounded-full flex items-center justify-center font-calligraphy text-xl bg-ink-black text-rice-paper group-hover:bg-vermilion group-hover:border-vermilion transition-colors">
           承
         </div>

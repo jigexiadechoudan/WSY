@@ -1,43 +1,61 @@
 import glob
+import os
+import json
 
-for filename in glob.glob('../../../*.json'):
+files = glob.glob(os.path.join(os.path.dirname(__file__), "../../../*.json"))
+
+replaces = {
+    '蜡染古称"蜡缬"，': '蜡染古称“蜡缬”，',
+    '的"蓝尹"工官': '的“蓝尹”工官',
+    '产生"冰纹"，': '产生“冰纹”，',
+    '称为"供春壶"': '称为“供春壶”',
+    '的"树瘿壶"': '的“树瘿壶”',
+    '、时鹏"四大家"': '、时鹏“四大家”',
+    '徐友泉"三大家"': '徐友泉“三大家”',
+    '艺人为"技术辅导"': '艺人为“技术辅导”',
+    '俗称"曼生壶"': '俗称“曼生壶”',
+    '讲究"方非一式，圆不一相"': '讲究“方非一式，圆不一相”',
+    '一种是"泥片打身筒"': '一种是“泥片打身筒”',
+    '另一种是"镶身筒"': '另一种是“镶身筒”',
+    '称为"明针"': '称为“明针”',
+    '有"绣万国于一锦"之说': '有“绣万国于一锦”之说',
+    '谓之"针绝"': '谓之“针绝”',
+    '叙述，"宋人之绣': '叙述，“宋人之绣',
+    '光彩射目。"': '光彩射目。”',
+    '成了"家家养蚕，户户刺绣"的盛况': '成了“家家养蚕，户户刺绣”的盛况',
+    '称为"绣市"': '称为“绣市”',
+    '创"仿真绣"': '创“仿真绣”',
+    '创"乱针绣"': '创“乱针绣”',
+    '讲究"平、齐、细、密、和、光、顺、匀"的特点': '讲究“平、齐、细、密、和、光、顺、匀”的特点',
+    '形成"平、齐、细、密、匀、顺、和、光"的特点': '形成“平、齐、细、密、匀、顺、和、光”的特点',
+    '又称"双面绣"': '又称“双面绣”',
+    '被誉为"苏绣皇后"': '被誉为“苏绣皇后”',
+    '特色的"融针绣"风格': '特色的“融针绣”风格',
+    '首创"简针绣"技法': '首创“简针绣”技法',
+    '创新出"滴滴绣"': '创新出“滴滴绣”',
+    '被称为"姑苏绣郎"': '被称为“姑苏绣郎”',
+    '孙女"女红"首制': '孙女“女红”首制',
+    '称为"女红"': '称为“女红”',
+    '要求"千刻不落，万剪不断"': '要求“千刻不落，万剪不断”',
+    '分为"阴刻"': '分为“阴刻”',
+    '和"阳刻"': '和“阳刻”'
+}
+
+for filename in files:
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # very specific replacements
-        content = content.replace('孙女"女红"首制', '孙女“女红”首制')
-        content = content.replace('称为"女红"', '称为“女红”')
-        content = content.replace('有"绣万国于一锦"之说', '有“绣万国于一锦”之说')
-        content = content.replace('谓之"针绝"', '谓之“针绝”')
-        content = content.replace('叙述，"宋人之绣', '叙述，“宋人之绣')
-        content = content.replace('光彩射目。"', '光彩射目。”')
-        content = content.replace('成了"家家养蚕，户户刺绣"的盛况', '成了“家家养蚕，户户刺绣”的盛况')
-        content = content.replace('称为"绣市"', '称为“绣市”')
-        content = content.replace('创"仿真绣"', '创“仿真绣”')
-        content = content.replace('创"乱针绣"', '创“乱针绣”')
-        content = content.replace('讲究"平、齐、细、密、和、光、顺、匀"的特点', '讲究“平、齐、细、密、和、光、顺、匀”的特点')
-        content = content.replace('形成"平、齐、细、密、匀、顺、和、光"的特点', '形成“平、齐、细、密、匀、顺、和、光”的特点')
-        content = content.replace('又称"双面绣"', '又称“双面绣”')
-
-        # 紫砂.json fixes
-        content = content.replace('称为"供春壶"', '称为“供春壶”')
-        content = content.replace('俗称"曼生壶"', '俗称“曼生壶”')
-        content = content.replace('讲究"方非一式，圆不一相"', '讲究“方非一式，圆不一相”')
-        content = content.replace('一种是"泥片打身筒"', '一种是“泥片打身筒”')
-        content = content.replace('另一种是"镶身筒"', '另一种是“镶身筒”')
-        content = content.replace('称为"明针"', '称为“明针”')
-
-        # 剪纸.json fixes
-        content = content.replace('要求"千刻不落，万剪不断"', '要求“千刻不落，万剪不断”')
-        content = content.replace('分为"阴刻"', '分为“阴刻”')
-        content = content.replace('和"阳刻"', '和“阳刻”')
-        
-        # 蜡染.json fixes
-        content = content.replace('产生"冰纹"', '产生“冰纹”')
-
+        for k, v in replaces.items():
+            content = content.replace(k, v)
+            
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(content)
+        
+        # Test if it's valid JSON now
+        with open(filename, 'r', encoding='utf-8') as f:
+            json.load(f)
             
+        print(f"Fixed and validated {filename}")
     except Exception as e:
-        pass
+        print(f"Error on {filename}: {e}")

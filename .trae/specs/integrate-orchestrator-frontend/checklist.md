@@ -1,0 +1,9 @@
+- [x] OmniOrchestrator 悬浮按钮或入口在前端页面正常显示。
+- [x] 点击入口能正确展开对话/指令输入面板。
+- [x] 输入指令并提交后，界面能显示加载状态（如 loading 动画）。
+- [x] 前端能成功向后端的 `/api/v1/orchestrator/process` 接口发送 POST 请求并接收响应。
+- [x] TaskPipelineVisualizer 能够正确渲染返回的意图信息 (Intent)。
+- [x] TaskPipelineVisualizer 能够正确渲染任务分解列表 (Tasks)。
+- [x] TaskPipelineVisualizer 能够正确渲染最终整合的回复 (Final Answer)。
+- [x] 对于包含图片生成等任务，前端能够提取结果并渲染图片。
+- [x] 遇到后端错误或无法识别意图时，界面有优雅的回退提示。
