@@ -107,6 +107,32 @@ class LangChainService:
             print(f"LLM chat error: {e}")
             return "抱歉，我现在无法回答您的问题，请稍后再试。"
 
+    async def achat_stream(self, messages: list, system_prompt: str = None):
+        """
+        进行对话并流式返回
+        """
+        if not self.llm:
+            yield "抱歉，AI 服务暂时不可用。"
+            return
+
+        langchain_messages = []
+
+        if system_prompt:
+            langchain_messages.append(SystemMessage(content=system_prompt))
+
+        for msg in messages:
+            if msg["role"] == "user":
+                langchain_messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                langchain_messages.append(AIMessage(content=msg["content"]))
+
+        try:
+            async for chunk in self.llm.astream(langchain_messages):
+                yield chunk.content
+        except Exception as e:
+            print(f"LLM astream error: {e}")
+            yield "抱歉，我现在无法回答您的问题，请稍后再试。"
+
     def generate_follow_up_questions(self, context: str, user_query: str, answer: str) -> list:
         """生成追问选项"""
         prompt = f"""你是一个非遗文化知识助手的追问生成器。根据以下对话内容，生成 3 个用户可能感兴趣的追问问题。

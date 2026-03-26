@@ -6,79 +6,121 @@ import HandTracking from '../components/HandTracking';
 const VisionMentor = () => {
   const [searchParams] = useSearchParams();
   const scenarioParam = searchParams.get('scenario');
-  const [activeScenario, setActiveScenario] = useState(scenarioParam || 'embroidery'); // 'embroidery' | 'clay'
+  const [activeScenario, setActiveScenario] = useState(scenarioParam || 'embroidery'); // 'embroidery' | 'clay' | 'shadow'
 
   useEffect(() => {
-    if (scenarioParam && (scenarioParam === 'embroidery' || scenarioParam === 'clay')) {
+    if (scenarioParam && ['embroidery', 'clay', 'shadow'].includes(scenarioParam)) {
       setActiveScenario(scenarioParam);
     }
   }, [scenarioParam]);
-  const [metricValue, setMetricValue] = useState(0);
-  const [feedbackStatus, setFeedbackStatus] = useState('waiting'); // 'waiting' | 'good' | 'warning' | 'error'
+  
+  const [metricValue, setMetricValue] = useState(0); // 0-100
   const [feedbackMessage, setFeedbackMessage] = useState('等待检测...');
+  const [aiFeedback, setAiFeedback] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  
+  const lastApiCallTime = useRef(0);
+  const highScoreStartTime = useRef(null);
+
+  // Reset states when scenario changes
+  useEffect(() => {
+    setMetricValue(0);
+    setFeedbackMessage('等待检测...');
+    setAiFeedback('');
+    setIsUnlocked(false);
+    highScoreStartTime.current = null;
+  }, [activeScenario]);
 
   // Theme configuration based on scenario
   const theme = {
     embroidery: {
-      title: '苏绣 · 运针检测',
+      title: '苏绣 · 捏针手势',
       color: 'cyan-glaze',
       accent: '#5796B3',
       bg: 'bg-cyan-glaze/10',
       border: 'border-cyan-glaze',
       text: 'text-cyan-glaze',
-      icon: '🪡', // Needle
-      metricLabel: '指间距 (针法力度)',
-      instruction: '请通过摄像头展示您的拨针动作，保持拇指与食指的自然开合。',
+      icon: '🪡',
+      instruction: '请将食指与拇指轻轻捏合，模仿拿针的姿势。',
     },
     clay: {
-      title: '紫砂 · 拍打成型',
+      title: '紫砂 · 拍泥手势',
       color: 'vermilion',
       accent: '#C04851',
       bg: 'bg-vermilion/10',
       border: 'border-vermilion',
       text: 'text-vermilion',
-      icon: '🏺', // Amphora/Pot
-      metricLabel: '手掌开合 (拍泥力度)',
-      instruction: '请展示拍打泥片的动作，保持手掌与泥片接触面的稳定性。',
+      icon: '🏺',
+      instruction: '请伸直五指并拢，展示平整的拍泥手掌。',
     },
+    shadow: {
+      title: '皮影 · 飞兔手影',
+      color: 'amber-600',
+      accent: '#D97706',
+      bg: 'bg-amber-100/50',
+      border: 'border-amber-600',
+      text: 'text-amber-700',
+      icon: '🐰',
+      instruction: '竖起食指中指，捏合其他三指，模仿兔子手影。',
+    }
   };
 
   const currentTheme = theme[activeScenario];
 
   const handleHandResults = (results) => {
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-      const landmarks = results.multiHandLandmarks[0];
-      const thumbTip = landmarks[4];
-      const indexTip = landmarks[8];
+      const now = Date.now();
+      // Throttle API calls to roughly 5 fps
+      if (now - lastApiCallTime.current > 200) {
+        lastApiCallTime.current = now;
+        
+        let needFeedback = false;
+        if (metricValue >= 85 && !isUnlocked) {
+            if (!highScoreStartTime.current) {
+                highScoreStartTime.current = now;
+            } else if (now - highScoreStartTime.current > 2000) {
+                needFeedback = true;
+                setIsUnlocked(true); // Prevent multiple unlock calls
+            }
+        } else if (metricValue < 85) {
+            highScoreStartTime.current = null;
+        }
 
-      // Calculate Euclidean distance
-      const distance = Math.sqrt(
-        Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
-      );
-      
-      setMetricValue(distance);
-
-      // Feedback logic
-      // Customize thresholds based on scenario if needed
-      const thresholds = activeScenario === 'embroidery' 
-        ? { min: 0.03, max: 0.15 } 
-        : { min: 0.05, max: 0.2 };
-
-      if (distance < thresholds.min) {
-        setFeedbackStatus('error');
-        setFeedbackMessage(activeScenario === 'embroidery' ? '捏针过紧 (易断线)' : '拍打过重 (泥片易裂)');
-      } else if (distance > thresholds.max) {
-        setFeedbackStatus('warning');
-        setFeedbackMessage(activeScenario === 'embroidery' ? '针距过宽 (走线不稳)' : '手掌张开过大 (受力不均)');
-      } else {
-        setFeedbackStatus('good');
-        setFeedbackMessage('动作标准 (Good)');
+        // Call backend API
+        fetch('http://localhost:8002/api/v1/vision/analyze-pose', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                landmarks: results.multiHandLandmarks,
+                scenario: activeScenario,
+                need_feedback: needFeedback
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                setMetricValue(data.score);
+                setFeedbackMessage(data.hint);
+                if (data.feedback) {
+                    setAiFeedback(data.feedback);
+                }
+            }
+        })
+        .catch(err => console.error("Vision API Error:", err));
       }
     } else {
       setMetricValue(0);
-      setFeedbackStatus('waiting');
       setFeedbackMessage('未检测到手部动作');
+      highScoreStartTime.current = null;
     }
+  };
+
+  // Helper to determine feedback color based on score
+  const getScoreColor = (score) => {
+      if (score >= 85) return 'text-green-600 border-green-500 bg-green-50';
+      if (score >= 60) return 'text-yellow-600 border-yellow-500 bg-yellow-50';
+      if (score > 0) return 'text-red-600 border-red-500 bg-red-50';
+      return 'text-gray-500 border-gray-300 bg-gray-50';
   };
 
   return (
@@ -96,32 +138,29 @@ const VisionMentor = () => {
               视觉导师 <span className="text-2xl text-ink-black/60 font-serif">Vision Mentor</span>
             </h1>
             <p className="text-lg text-ink-black/70 max-w-2xl">
-              结合计算机视觉技术，实时分析您的非遗技艺动作，提供专业指导与纠错。
+              挑战大师手势！通过摄像头实时比对您的动作，解锁非遗专属成就。
             </p>
           </div>
           
           {/* Scenario Switcher */}
-          <div className="flex gap-4 mt-6 md:mt-0">
-            <button
-              onClick={() => setActiveScenario('embroidery')}
-              className={`px-6 py-2 rounded-full border-2 transition-all duration-300 flex items-center gap-2 font-bold ${
-                activeScenario === 'embroidery'
-                  ? 'bg-cyan-glaze text-white border-cyan-glaze shadow-lg transform -translate-y-1'
-                  : 'bg-transparent text-ink-black/60 border-ink-black/20 hover:border-cyan-glaze hover:text-cyan-glaze'
-              }`}
-            >
-              <span>🪡</span> 苏绣模式
-            </button>
-            <button
-              onClick={() => setActiveScenario('clay')}
-              className={`px-6 py-2 rounded-full border-2 transition-all duration-300 flex items-center gap-2 font-bold ${
-                activeScenario === 'clay'
-                  ? 'bg-vermilion text-white border-vermilion shadow-lg transform -translate-y-1'
-                  : 'bg-transparent text-ink-black/60 border-ink-black/20 hover:border-vermilion hover:text-vermilion'
-              }`}
-            >
-              <span>🏺</span> 紫砂模式
-            </button>
+          <div className="flex flex-wrap gap-4 mt-6 md:mt-0">
+            {Object.keys(theme).map((key) => (
+                <button
+                key={key}
+                onClick={() => setActiveScenario(key)}
+                className={`px-5 py-2 rounded-full border-2 transition-all duration-300 flex items-center gap-2 font-bold ${
+                    activeScenario === key
+                    ? `bg-[${theme[key].accent}] text-white border-[${theme[key].accent}] shadow-lg transform -translate-y-1`
+                    : 'bg-transparent text-ink-black/60 border-ink-black/20 hover:border-ink-black hover:text-ink-black'
+                }`}
+                style={{
+                    backgroundColor: activeScenario === key ? theme[key].accent : 'transparent',
+                    borderColor: activeScenario === key ? theme[key].accent : ''
+                }}
+                >
+                <span>{theme[key].icon}</span> {theme[key].title.split('·')[0]}模式
+                </button>
+            ))}
           </div>
         </div>
 
@@ -140,7 +179,7 @@ const VisionMentor = () => {
               {/* The Hand Tracking Component */}
               <HandTracking onResults={handleHandResults} scenario={activeScenario} />
               
-              <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-center text-sm">
+              <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-md text-white px-4 py-3 rounded-xl text-center text-lg shadow-lg border border-white/20">
                 {currentTheme.instruction}
               </div>
             </div>
@@ -152,73 +191,53 @@ const VisionMentor = () => {
             {/* Status Card */}
             <div className={`bg-white p-6 rounded-xl shadow-lg border-t-4 ${currentTheme.border}`}>
               <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${currentTheme.text}`}>
-                {currentTheme.icon} 实时反馈
+                {currentTheme.icon} 动作匹配度
               </h3>
               
-              <div className={`text-center py-8 rounded-lg mb-4 transition-colors duration-300 ${
-                feedbackStatus === 'good' ? 'bg-green-100 text-green-800' :
-                feedbackStatus === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                feedbackStatus === 'error' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-500'
-              }`}>
-                <div className="text-3xl font-bold mb-2">
-                  {feedbackStatus === 'waiting' ? 'Waiting...' : 
-                   feedbackStatus === 'good' ? 'Excellent' : 
-                   feedbackStatus === 'warning' ? 'Adjust' : 'Alert'}
-                </div>
+              {/* Circular Progress */}
+              <div className="flex justify-center my-8 relative">
+                  <div className="relative w-40 h-40 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90 absolute inset-0">
+                          <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-gray-100" />
+                          <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="10" fill="transparent" 
+                                  strokeDasharray="439.8" strokeDashoffset={439.8 - (metricValue / 100) * 439.8}
+                                  className={`transition-all duration-300 ease-out ${
+                                      metricValue >= 85 ? 'text-green-500' : metricValue >= 60 ? 'text-yellow-500' : 'text-red-400'
+                                  }`} 
+                                  strokeLinecap="round" />
+                      </svg>
+                      <div className="text-center z-10 flex flex-col items-center">
+                          <span className="text-4xl font-bold font-mono text-ink-black">{metricValue}</span>
+                          <span className="text-sm text-ink-black/50">分</span>
+                      </div>
+                  </div>
+              </div>
+
+              <div className={`text-center py-4 px-2 rounded-lg mb-4 transition-colors duration-300 border ${getScoreColor(metricValue)}`}>
                 <div className="font-medium">{feedbackMessage}</div>
-              </div>
-
-              {/* Metric Visualization */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-ink-black/70">
-                  <span>{currentTheme.metricLabel}</span>
-                  <span className="font-mono">{(metricValue * 100).toFixed(1)}</span>
-                </div>
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden relative">
-                  {/* Target Zone Marker */}
-                  <div className="absolute top-0 bottom-0 bg-green-200/50 w-[20%] left-[20%] border-l border-r border-green-400"></div>
-                  
-                  {/* Value Bar */}
-                  <div 
-                    className={`h-full transition-all duration-200 ease-out ${
-                      feedbackStatus === 'good' ? 'bg-green-500' :
-                      feedbackStatus === 'warning' ? 'bg-yellow-500' :
-                      feedbackStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
-                    }`}
-                    style={{ width: `${Math.min(metricValue * 300, 100)}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-ink-black/40">
-                  <span>紧闭</span>
-                  <span>适中</span>
-                  <span>张开</span>
-                </div>
+                {metricValue >= 85 && !isUnlocked && (
+                    <div className="text-xs mt-2 animate-pulse font-bold">保持姿势 2 秒即可解锁成就！</div>
+                )}
               </div>
             </div>
 
-            {/* Technical Info Card */}
-            <div className="bg-white/60 p-6 rounded-xl border border-ink-black/5">
-              <h4 className="text-lg font-bold text-ink-black mb-3">技术参数</h4>
-              <ul className="space-y-2 text-sm text-ink-black/70">
-                <li className="flex justify-between">
-                  <span>模型框架:</span>
-                  <span className="font-mono font-bold">MediaPipe Hands</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>检测延迟:</span>
-                  <span className="font-mono text-green-600">~15ms</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>关键点数量:</span>
-                  <span className="font-mono">21 / Hand</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>算法:</span>
-                  <span className="font-mono">Euclidean Distance</span>
-                </li>
-              </ul>
-            </div>
+            {/* AI Feedback Card */}
+            {isUnlocked && aiFeedback && (
+              <div className="bg-gradient-to-br from-yellow-50 to-amber-100 p-6 rounded-xl shadow-lg border border-amber-200 animate-fade-in-up">
+                <h4 className="text-lg font-bold text-amber-800 mb-3 flex items-center gap-2">
+                  <span>🏆</span> 大师寄语
+                </h4>
+                <p className="text-amber-900 leading-relaxed italic">
+                  "{aiFeedback}"
+                </p>
+                <button 
+                  onClick={() => { setIsUnlocked(false); setAiFeedback(''); }}
+                  className="mt-4 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-bold"
+                >
+                  继续挑战
+                </button>
+              </div>
+            )}
 
           </div>
         </div>

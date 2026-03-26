@@ -45,6 +45,92 @@ class FollowUpQuestion(Base):
     conversation = relationship("Conversation", back_populates="follow_ups")
 
 
+import enum
+from sqlalchemy import Float, Enum
+
+class UserLevel(enum.Enum):
+    BEGINNER = "beginner"
+    APPRENTICE = "apprentice"
+    ADVANCED = "advanced"
+    MASTER = "master"
+    GRANDMASTER = "grandmaster"
+
+class User(Base):
+    """用户基本信息表"""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False)
+    avatar_url = Column(String(255), nullable=True)
+    level = Column(Enum(UserLevel), default=UserLevel.BEGINNER)
+    experience_points = Column(Integer, default=0)
+    title = Column(String(50), default="初学者")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 关联
+    practice_records = relationship("PracticeRecord", back_populates="user", cascade="all, delete-orphan")
+    works = relationship("UserWork", back_populates="user", cascade="all, delete-orphan")
+    abilities = relationship("UserAbility", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+
+class PracticeRecord(Base):
+    """用户练习记录表"""
+    __tablename__ = "practice_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    craft_id = Column(String(50), nullable=False)
+    craft_name = Column(String(100), nullable=False)
+    scenario = Column(String(50), nullable=True)
+    duration = Column(Integer, nullable=False)  # 练习时长（秒）
+    score = Column(Float, nullable=False)
+    accuracy = Column(Float, nullable=False)
+    feedback = Column(Text, nullable=True)
+    completed_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 反向关联
+    user = relationship("User", back_populates="practice_records")
+
+
+class UserWork(Base):
+    """用户作品集表"""
+    __tablename__ = "user_works"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    craft_id = Column(String(50), nullable=False)
+    craft_name = Column(String(100), nullable=False)
+    title = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    image_url = Column(String(255), nullable=False)
+    ai_generated = Column(Integer, default=0)  # 0 否，1 是
+    prompt_used = Column(Text, nullable=True)
+    style = Column(String(50), nullable=True)
+    status = Column(String(20), default="public")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 反向关联
+    user = relationship("User", back_populates="works")
+
+
+class UserAbility(Base):
+    """用户能力五维数据表"""
+    __tablename__ = "user_abilities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    stability = Column(Float, default=50.0)
+    accuracy = Column(Float, default=50.0)
+    speed = Column(Float, default=50.0)
+    creativity = Column(Float, default=50.0)
+    knowledge = Column(Float, default=50.0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 反向关联
+    user = relationship("User", back_populates="abilities")
+
+
 def init_db():
     """初始化数据库，创建所有表"""
     Base.metadata.create_all(bind=engine)

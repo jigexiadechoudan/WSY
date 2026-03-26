@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from datetime import datetime
+import json
 
 from app.services.rag_service import rag_service
 from app.db.mysql_db import get_db, Conversation, FollowUpQuestion
@@ -23,10 +25,90 @@ class QueryResponse(BaseModel):
     session_id: str  # 返回会话 ID，用于后续追问
 
 
-@router.post("/query", response_model=QueryResponse)
+@router.post("/query")
+async def query_knowledge_stream(request: QueryRequest, db: Session = Depends(get_db)):
+    """
+    流式知识问答接口 (对应 /api/v1/knowledge/query)
+    """
+    query = request.query
+    session_id = request.session_id or str(uuid.uuid4())
+
+    # 1. 获取对话历史（最近 5 条）
+    conversation_history = []
+    try:
+        past_conversations = db.query(Conversation).filter(
+            Conversation.session_id == session_id
+        ).order_by(Conversation.created_at.desc()).limit(5).all()
+
+        if past_conversations:
+            past_conversations.reverse()
+            for conv in past_conversations:
+                conversation_history.append({"role": "user", "content": conv.user_query})
+                conversation_history.append({"role": "assistant", "content": conv.agent_answer})
+    except Exception as e:
+        print(f"Error fetching history: {e}")
+
+    async def event_generator():
+        try:
+            # 首次发送 session_id
+            yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+
+            related_entities = []
+            full_answer = ""
+            follow_ups = []
+
+            async for chunk_str in rag_service.aquery_stream(query, conversation_history):
+                yield chunk_str
+                
+                # 尝试解析 chunk_str 以便后续保存数据库
+                try:
+                    if chunk_str.startswith("data: "):
+                        data = json.loads(chunk_str[6:].strip())
+                        if data.get("type") == "metadata":
+                            related_entities = data.get("related_entities", [])
+                        elif data.get("type") == "done":
+                            full_answer = data.get("full_answer", "")
+                            follow_ups = data.get("follow_up_questions", [])
+                except json.JSONDecodeError:
+                    pass
+
+            # 流结束后，将结果存入数据库
+            try:
+                context_entities = ",".join(related_entities)
+                new_conversation = Conversation(
+                    session_id=session_id,
+                    user_query=query,
+                    agent_answer=full_answer,
+                    context_entities=context_entities,
+                    created_at=datetime.utcnow()
+                )
+                db.add(new_conversation)
+                db.flush()
+
+                for i, fq in enumerate(follow_ups):
+                    follow_up = FollowUpQuestion(
+                        conversation_id=new_conversation.id,
+                        question_text=fq,
+                        sort_order=i
+                    )
+                    db.add(follow_up)
+
+                db.commit()
+            except Exception as e:
+                print(f"Error saving conversation: {e}")
+                db.rollback()
+
+        except Exception as e:
+            print(f"Streaming error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@router.post("/qa", response_model=QueryResponse)
 async def query_knowledge_base(request: QueryRequest, db: Session = Depends(get_db)):
     """
-    知识图谱问答接口 - 基于 RAG 技术
+    知识问答接口 (对应 /api/v1/knowledge/qa)
+    结合 Neo4j 知识图谱, Elasticsearch 向量库和 DeepSeek LLM
     结合 Neo4j 知识图谱和 DeepSeek LLM
 
     请求示例:

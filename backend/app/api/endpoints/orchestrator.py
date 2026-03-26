@@ -1,56 +1,36 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, List
-
-from app.services.orchestrator.task_orchestrator import task_orchestrator
-from app.services.orchestrator.intent_recognition import intent_recognizer
+from typing import Optional, List, Dict, Any
+from app.services.orchestrator_service import orchestrator_service
 
 router = APIRouter()
 
 class OrchestratorRequest(BaseModel):
     query: str
+    session_id: Optional[str] = None
+    history: Optional[List[Dict[str, Any]]] = None
 
 class OrchestratorResponse(BaseModel):
-    status: str
-    original_query: str
-    tasks_executed: int
+    intent: Dict[str, Any]
+    tasks: List[Dict[str, Any]]
     results: Dict[str, Any]
+    final_answer: str
 
-class IntentRequest(BaseModel):
-    query: str
-
-class IntentResponse(BaseModel):
-    intent: str
-    confidence: float
-    message: str
-
-@router.post("/orchestrate", response_model=OrchestratorResponse)
-async def orchestrate_task(request: OrchestratorRequest):
+@router.post("/process", response_model=OrchestratorResponse)
+async def process_request(request: OrchestratorRequest):
     """
-    Main endpoint for orchestrating complex user queries.
-    It decomposes the query, routes it to the right agents via MCP, and aggregates results.
+    接收用户自然语言输入，经过主协调器处理：
+    1. 意图识别
+    2. 任务分解
+    3. 分发执行
+    4. 结果汇总
     """
     try:
-        result = await task_orchestrator.orchestrate(request.query)
-        
-        if result.get("status") == "error":
-            raise HTTPException(status_code=400, detail=result.get("message"))
-            
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/recognize-intent", response_model=IntentResponse)
-async def recognize_intent(request: IntentRequest):
-    """
-    Endpoint to explicitly test intent recognition
-    """
-    try:
-        intent, confidence, msg = intent_recognizer.recognize(request.query)
-        return IntentResponse(
-            intent=intent,
-            confidence=confidence,
-            message=msg
+        result = await orchestrator_service.process_request(
+            query=request.query,
+            session_id=request.session_id,
+            history=request.history
         )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

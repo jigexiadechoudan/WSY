@@ -53,7 +53,7 @@ def import_shadow_puppet_data():
     SET history.起源时间 = $origin_time,
         history.起源地点 = $origin_place,
         history.发源地 = $origin_source
-    CREATE (shadow)-[:HAS_HISTORY]->(history)
+    MERGE (shadow)-[:HAS_HISTORY]->(history)
     RETURN history
     """
     neo4j_service.query(history_query, {
@@ -72,7 +72,7 @@ def import_shadow_puppet_data():
         SET p.朝代 = $dynasty,
             p.时期 = $period,
             p.描述 = $description
-        CREATE (history)-[:HAS_PERIOD]->(p)
+        MERGE (history)-[:HAS_PERIOD]->(p)
         RETURN p
         """
         neo4j_service.query(period_query, {
@@ -92,7 +92,7 @@ def import_shadow_puppet_data():
         SET l.代表地区 = $regions,
             l.特点 = $features,
             l.代表剧目 = $plays
-        CREATE (shadow)-[:HAS_SCHOOL]->(l)
+        MERGE (shadow)-[:HAS_SCHOOL]->(l)
         RETURN l
         """
         neo4j_service.query(liupai_query, {
@@ -113,7 +113,7 @@ def import_shadow_puppet_data():
     MATCH (shadow:Heritage {name: "皮影戏"})
     MERGE (craft:Craft {name: "皮影制作工艺"})
     SET craft.造型特点 = $features
-    CREATE (shadow)-[:HAS_CRAFT]->(craft)
+    MERGE (shadow)-[:HAS_CRAFT]->(craft)
     RETURN craft
     """
     neo4j_service.query(craft_query, {
@@ -128,7 +128,7 @@ def import_shadow_puppet_data():
         SET s.步骤序号 = $step_num,
             s.说明 = $description,
             s.要点 = $points
-        CREATE (craft)-[:HAS_STEP]->(s)
+        MERGE (craft)-[:HAS_STEP]->(s)
         RETURN s
         """
         neo4j_service.query(step_query, {
@@ -144,7 +144,7 @@ def import_shadow_puppet_data():
     performance_query = """
     MATCH (shadow:Heritage {name: "皮影戏"})
     MERGE (perf:Performance {name: "皮影表演技法"})
-    CREATE (shadow)-[:HAS_PERFORMANCE]->(perf)
+    MERGE (shadow)-[:HAS_PERFORMANCE]->(perf)
     RETURN perf
     """
     neo4j_service.query(performance_query)
@@ -155,7 +155,7 @@ def import_shadow_puppet_data():
         MATCH (perf:Performance {name: "皮影表演技法"})
         MERGE (t:Technique {name: $name})
         SET t.说明 = $description
-        CREATE (perf)-[:HAS_TECHNIQUE]->(t)
+        MERGE (perf)-[:HAS_TECHNIQUE]->(t)
         RETURN t
         """
         neo4j_service.query(tech_query, {
@@ -174,7 +174,7 @@ def import_shadow_puppet_data():
             p.级别 = $level,
             p.简介 = $intro,
             p.type = "传承人"
-        CREATE (shadow)-[:HAS_INHERITOR]->(p)
+        MERGE (shadow)-[:HAS_INHERITOR]->(p)
         RETURN p
         """
         neo4j_service.query(inheritor_query, {
@@ -194,7 +194,7 @@ def import_shadow_puppet_data():
         SET play.类型 = $type,
             play.流派 = $school,
             play.简介 = $intro
-        CREATE (shadow)-[:HAS_DRAMA]->(play)
+        MERGE (shadow)-[:HAS_DRAMA]->(play)
         RETURN play
         """
         neo4j_service.query(play_query, {
@@ -213,7 +213,7 @@ def import_shadow_puppet_data():
     SET equip.影窗 = "白色半透明幕布",
         equip.灯光 = "传统用油灯蜡烛，现代用电灯",
         equip.乐器 = ["二胡", "板胡", "锣鼓", "铙钹", "唢呐", "笛子"]
-    CREATE (shadow)-[:HAS_EQUIPMENT]->(equip)
+    MERGE (shadow)-[:HAS_EQUIPMENT]->(equip)
     RETURN equip
     """
     neo4j_service.query(equipment_query)

@@ -102,22 +102,61 @@ const KnowledgeCurator = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-
+      // 创建一个空的回复消息，准备流式接收
+      const agentMsgId = Date.now() + 1;
       setMessages(prev => [...prev, {
-        id: Date.now() + 1,
+        id: agentMsgId,
         sender: 'agent',
-        content: data.answer,
-        relatedEntities: data.related_entities
+        content: '',
+        relatedEntities: []
       }]);
 
-      if (data.follow_up_questions && data.follow_up_questions.length > 0) {
-        setFollowUpQuestions(data.follow_up_questions);
-      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let buffer = '';
 
-      if (data.session_id) {
-        localStorage.setItem('knowledge_session_id', data.session_id);
-        setSessionId(data.session_id);
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // 保留最后一行（可能不完整）
+
+          for (const line of lines) {
+            if (line.trim() === '') continue;
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+              try {
+                const data = JSON.parse(dataStr);
+                
+                if (data.type === 'session') {
+                  if (data.session_id) {
+                    localStorage.setItem('knowledge_session_id', data.session_id);
+                    setSessionId(data.session_id);
+                  }
+                } else if (data.type === 'metadata') {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === agentMsgId ? { ...msg, relatedEntities: data.related_entities } : msg
+                  ));
+                } else if (data.type === 'chunk') {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === agentMsgId ? { ...msg, content: msg.content + data.content } : msg
+                  ));
+                } else if (data.type === 'done') {
+                  if (data.follow_up_questions && data.follow_up_questions.length > 0) {
+                    setFollowUpQuestions(data.follow_up_questions);
+                  }
+                } else if (data.type === 'error') {
+                  console.error('Streaming error:', data.message);
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e, dataStr);
+              }
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching knowledge:', error);
