@@ -29,7 +29,7 @@
 | Wave | Status | Tasks |
 |------|--------|-------|
 | Wave 1: Foundation | ✓ Complete | 01-01, 01-02, 01-03, 01-04, 01-05, 01-06 |
-| Wave 2: Component Inventory | ○ Pending | 01-07, 01-08, 01-09, 01-10, 01-11, 01-12, 01-13, 01-14 |
+| Wave 2: Component Inventory | ✓ Complete | 01-07, 01-08, 01-09, 01-10, 01-11, 01-12, 01-13, 01-14 |
 
 ### Wave 1 Commits
 - `127ca6b` — Animation Infrastructure (variants.js + springs.js)
@@ -38,6 +38,16 @@
 - `509de73` — Route-Based Code Splitting (React.lazy + Suspense)
 - `7dadc1a` — PageTransition Wrapper (AnimatePresence)
 - `c120d1e` — LoadingSkeleton Component (page/card/text/avatar + shimmer)
+
+### Wave 2 Commits
+- `54136b0` — AnimatedCard (hover lift, shadow expansion, agent glow)
+- `3c1a159` — Modal (portal, escape key, scale animations)
+- `f1b8d02` — Tooltip (4 positions, fade animation, accessibility)
+- `3cb09fc` — Accordion (expand/collapse, chevron, single/multi-open)
+- `034a68d` — Form inputs (Input, Textarea, Select with focus/error states)
+- `b0a5a0e` — StaggerContainer (viewport-triggered stagger animations)
+- `fde4640` — ChatBubble (user/assistant bubbles, typing indicator)
+- `c3107ec` — Navbar enhancement (scroll blur, mobile menu, active indicator)
 
 ---
 

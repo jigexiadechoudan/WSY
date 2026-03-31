@@ -10,11 +10,11 @@
 | Phase | Name | Status | Plans | Progress |
 |-------|------|--------|-------|----------|
 | 0 | 体验完整性优化 | ✓ | 6/6 | 100% |
-| 1 | UI 增强与优化 | ◆ | 1/2 (Wave 1/2) | Wave 1 done |
+| 1 | UI 增强与优化 | ◆ | 2/2 (Wave 1/2) | Wave 2 done |
 
 ## Current Session
 
-**Last stopped at:** Phase 1 Wave 1 complete (01-01 through 01-06 committed)
+**Last stopped at:** Phase 1 Wave 2 complete (01-07 through 01-14 committed)
 
 ---
 
@@ -36,6 +36,19 @@
 | `509de73` | 01-04 | Route Code Splitting |
 | `7dadc1a` | 01-05 | PageTransition Wrapper |
 | `c120d1e` | 01-06 | LoadingSkeleton |
+
+## Phase 1 Wave 2 Commits
+
+| Commit | Task | Description |
+|--------|------|-------------|
+| `54136b0` | 01-07 | AnimatedCard |
+| `3c1a159` | 01-08 | Modal |
+| `f1b8d02` | 01-09 | Tooltip |
+| `3cb09fc` | 01-10 | Accordion |
+| `034a68d` | 01-11 | Form inputs (Input, Textarea, Select) |
+| `b0a5a0e` | 01-12 | StaggerContainer |
+| `fde4640` | 01-13 | ChatBubble |
+| `c3107ec` | 01-14 | Navbar Enhancement |
 
 ---
 
