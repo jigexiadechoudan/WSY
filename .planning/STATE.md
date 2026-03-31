@@ -10,11 +10,11 @@
 | Phase | Name | Status | Plans | Progress |
 |-------|------|--------|-------|----------|
 | 0 | 体验完整性优化 | ✓ | 6/6 | 100% |
-| 1 | UI 增强与优化 | ◆ | 0/0 | 0% |
+| 1 | UI 增强与优化 | ◆ | 1/2 (Wave 1/2) | Wave 1 done |
 
 ## Current Session
 
-**Last stopped at:** Phase 1 context gathered
+**Last stopped at:** Phase 1 Wave 1 complete (01-01 through 01-06 committed)
 
 ---
 
@@ -22,6 +22,20 @@
 
 - Context: `.planning/phases/01-ui-enhancement/01-CONTEXT.md` ✓
 - Discussion Log: `.planning/phases/01-ui-enhancement/01-DISCUSSION-LOG.md` ✓
+- Summary: `.planning/phases/01-ui-enhancement/01-SUMMARY.md` ✓
+
+---
+
+## Phase 1 Wave 1 Commits
+
+| Commit | Task | Description |
+|--------|------|-------------|
+| `127ca6b` | 01-01 | Animation Infrastructure |
+| `38b006b` | 01-02 | Design Tokens |
+| `c62096d` | 01-03 | Button Enhancement |
+| `509de73` | 01-04 | Route Code Splitting |
+| `7dadc1a` | 01-05 | PageTransition Wrapper |
+| `c120d1e` | 01-06 | LoadingSkeleton |
 
 ---
 
